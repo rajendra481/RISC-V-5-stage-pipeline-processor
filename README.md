@@ -22,4 +22,7 @@ Automated self-checking testbench developed using Synopsys VCS
 Waveform debugging and signal-level trace analysis using Synopsys Verdi
 
 Validated: ALU operations, register writes, pipeline stalls, forwarding, branch execution, and memory correctness
+!(image alt)([image_url)](https://github.com/rajendragunji24/RISC-V-5-stage-pipeline-processor/blob/19fb61e35b9f382a83aa2d631c3bcfffeb683b55/waveform1)
+!(image alt)(image_url)
+!(image alt)(image_url)
 !(image alt)(image_url)
