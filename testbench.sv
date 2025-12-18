@@ -1,45 +1,85 @@
 `timescale 1ns/1ps
 
+`include "interface.sv"
+`include "environment.sv"
+
 module riscv_tb;
 
   logic clk, rst;
-  riscv_pipeline dut(.clk(clk), .rst(rst));
 
-  // Clock
+  // --------------------------------
+  // CLOCK
+  // --------------------------------
   initial begin
     clk = 0;
     forever #5 clk = ~clk;
   end
 
-  // Program load
+  // --------------------------------
+  // INTERFACE  ✅ ADDED
+  // --------------------------------
+  riscv_if rif(clk, rst);
+
+  // --------------------------------
+  // DUT
+  // --------------------------------
+  riscv_pipeline dut (
+    .clk(clk),
+    .rst(rst)
+  );
+
+  // --------------------------------
+  // CONNECT INTERFACE ROM → DUT ROM ✅ ADDED
+  // --------------------------------
+  genvar i;
+  generate
+    for (i = 0; i < 256; i++) begin
+      always_comb dut.rom[i] = rif.rom[i];
+    end
+  endgenerate
+
+  // --------------------------------
+  // ENVIRONMENT ✅ ADDED
+  // --------------------------------
+  environment env;
+
+  initial begin
+    env = new(rif);
+    env.run();
+  end
+
+  // --------------------------------
+  // PROGRAM LOAD (UNCHANGED)
+  // --------------------------------
   initial begin
     rst = 1;
 
-    dut.rom[0] = 32'h00500093;   // ADDI x1, x0, 5
-    dut.rom[1] = 32'h00700113;   // ADDI x2, x0, 7
-    dut.rom[2] = 32'h002081B3;   // ADD  x3, x1, x2
-    dut.rom[3] = 32'h00302423;   // SW   x3, 10(x0)
+    rif.rom[0] = 32'h00500093;   // ADDI x1, x0, 5
+    rif.rom[1] = 32'h00700113;   // ADDI x2, x0, 7
+    rif.rom[2] = 32'h002081B3;   // ADD  x3, x1, x2
+    rif.rom[3] = 32'h00302423;   // SW   x3, 10(x0)
+    rif.rom[4] = 32'h00A02203;   // LW   x4, 10(x0)
+    rif.rom[5] = 32'h0031A463;   // BEQ  x3, x4, +12
+    rif.rom[6] = 32'h06300293;   // ADDI x5, x0, 99
+    rif.rom[7] = 32'h03700293;   // ADDI x5, x0, 55
 
-    // FIXED INSTRUCTION HERE!!!
-    dut.rom[4] = 32'h00A02203;   // LW   x4, 10(x0)  <-- Correct encoding
-
-    dut.rom[5] = 32'h0031A463;   // BEQ  x3, x4, +12
-    dut.rom[6] = 32'h06300293;   // ADDI x5, x0, 99
-    dut.rom[7] = 32'h03700293;   // ADDI x5, x0, 55
-
-    for (int i=8; i<256; i++)
-      dut.rom[i] = 32'h00000013;
+    for (int j = 8; j < 256; j++)
+      rif.rom[j] = 32'h00000013;
 
     #20 rst = 0;
   end
 
+  // --------------------------------
   // VCD
+  // --------------------------------
   initial begin
     $dumpfile("pipeline.vcd");
     $dumpvars(0, riscv_tb);
   end
 
-  // Scoreboard
+  // --------------------------------
+  // SCOREBOARD (UNCHANGED)
+  // --------------------------------
   initial begin
     int errors;
     logic [31:0] r1,r2,r3,r4,r5,mem10;
@@ -52,7 +92,6 @@ module riscv_tb;
     r3 = dut.u_reg.regs[3];
     r4 = dut.u_reg.regs[4];
     r5 = dut.u_reg.regs[5];
-
     mem10 = dut.u_dmem.ram[10>>2];
 
     $display("----- SELF CHECK -----");
